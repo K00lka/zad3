@@ -27,6 +27,8 @@ jobs:
       - store_test_results:
           path: test-results
 
+      - store_test_results    
+
 workflows:
   version: 2
   test_workflow:
