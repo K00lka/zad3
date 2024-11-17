@@ -1,108 +1,95 @@
 import unittest
-from unittest.mock import patch, MagicMock
-from tkinter import Tk, Text
+from unittest.mock import patch, mock_open
 import os
-from unittest.mock import Mock
 import builtins
-import notes_app  
 
+# Importing the functions to test
+from notes_app import create_note, open_note, delete_note
 
+class TestNotesApp(unittest.TestCase):
 
-class TestTextEditorApp(unittest.TestCase):
-
-    def setUp(self):
-        """Create a test window and text area."""
-        self.window = Tk()
-        self.text_area = Text(self.window)
-
-    def tearDown(self):
-        """Destroy the test window after each test."""
-        self.window.destroy()
-
-    @patch('tkinter.filedialog.askopenfilename', return_value='test_file.txt')
-    @patch('builtins.open', new_callable=MagicMock)
-    def test_open_file(self, mock_open, mock_askopenfilename):
-        """Test the open_file function."""
-        mock_open.return_value.read.return_value = "Test content"
-
-        notes_app.open_file()
-
-        mock_open.assert_called_with('test_file.txt', 'r')
-        self.assertEqual(self.text_area.get(1.0, 'end-1c'), "Test content")
-
-    @patch('tkinter.filedialog.asksaveasfilename', return_value='test_save.txt')
-    @patch('builtins.open', new_callable=MagicMock)
-    def test_save_file(self, mock_open, mock_asksaveasfilename):
-        """Test the save_file function."""
-        self.text_area.insert(1.0, "Test save content")
-        notes_app.save_file()
-
-        mock_open.assert_called_with('test_save.txt', 'w')
-        mock_open.return_value.write.assert_called_with("Test save content\n")
-
-    def test_new_file(self):
-        """Test the new_file function."""
-        self.text_area.insert(1.0, "Old content")
-        notes_app.new_file()
-
-        self.assertEqual(self.text_area.get(1.0, 'end-1c'), "")
-
-    @patch('tkinter.colorchooser.askcolor', return_value=('gray', '#808080'))
-    def test_change_color(self, mock_askcolor):
-        """Test changing text color."""
-        notes_app.change_color()
-
-        self.assertEqual(self.text_area.cget("fg"), '#808080')
-
-    def test_change_font(self):
-        """Test changing the font."""
-        notes_app.font_name.set("Courier")
-        notes_app.font_size.set(12)
-
-        notes_app.change_font()
-
-        self.assertEqual(self.text_area.cget("font"), ('Courier', 12))
-
-    @patch('tkinter.messagebox.showinfo')
-    def test_about(self, mock_showinfo):
-        """Test the about dialog."""
-        notes_app.about()
-
-        mock_showinfo.assert_called_with("About this program", "This is a program written by yo mum")
-
-    @patch('text_editor_app.window.quit')  # Mocking the quit method of the window
-    def test_quit(self, mock_quit):
-        """Test quitting the app."""
-        notes_app.quit()
-
-        mock_quit.assert_called()
-
-    def test_cut(self):
-        """Test the cut operation."""
-        self.text_area.insert(1.0, "Test cut")
-        self.text_area.tag_add("sel", "1.0", "1.4")
-        notes_app.cut()
-
-        self.assertEqual(self.text_area.get(1.0, 'end-1c'), " cut")
-
-    def test_copy(self):
-        """Test the copy operation."""
-        self.text_area.insert(1.0, "Test copy")
-        self.text_area.tag_add("sel", "1.0", "1.4")
-        notes_app.copy()
-
-        clipboard_content = self.window.clipboard_get()
-        self.assertEqual(clipboard_content, "Test")
-
-    def test_paste(self):
-        """Test the paste operation."""
-        self.window.clipboard_clear()
-        self.window.clipboard_append("Paste content")
-
-        notes_app.paste()
-
-        self.assertEqual(self.text_area.get(1.0, 'end-1c'), "Paste content")
-
+    @patch("builtins.input", side_effect=["note1.txt", "This is the content of the note."])
+    @patch("builtins.open", new_callable=mock_open)
+    def test_create_note_success(self, mock_file, mock_input):
+        create_note()
+        mock_file.assert_called_once_with("note1.txt", "w")
+        mock_file().write.assert_called_once_with("This is the content of the note.")
+    
+    @patch("os.path.exists", return_value=True)
+    @patch("builtins.input", side_effect=["note1.txt"])
+    def test_create_note_file_exists(self, mock_input, mock_exists):
+        with patch("builtins.print") as mock_print:
+            create_note()
+            mock_print.assert_called_with("A note with this name already exists.")
+    
+    @patch("builtins.input", side_effect=["note1.txt"])
+    @patch("builtins.open", new_callable=mock_open, read_data="This is the content of the note.")
+    @patch("os.path.exists", return_value=True)
+    def test_open_note_success(self, mock_exists, mock_file, mock_input):
+        with patch("builtins.print") as mock_print:
+            open_note()
+            mock_file.assert_called_once_with("note1.txt", "r")
+            mock_print.assert_any_call("\n--- Content of note1.txt ---")
+            mock_print.assert_any_call("This is the content of the note.")
+    
+    @patch("builtins.input", side_effect=["note1.txt"])
+    @patch("os.path.exists", return_value=False)
+    def test_open_note_file_not_found(self, mock_exists, mock_input):
+        with patch("builtins.print") as mock_print:
+            open_note()
+            mock_print.assert_called_with("No note with this name found.")
+    
+    @patch("builtins.input", side_effect=["note1.txt"])
+    @patch("os.path.exists", return_value=True)
+    @patch("os.remove")
+    def test_delete_note_success(self, mock_remove, mock_exists, mock_input):
+        with patch("builtins.print") as mock_print:
+            delete_note()
+            mock_remove.assert_called_once_with("note1.txt")
+            mock_print.assert_called_with("Note 'note1.txt' deleted successfully.")
+    
+    @patch("builtins.input", side_effect=["note1.txt"])
+    @patch("os.path.exists", return_value=False)
+    def test_delete_note_file_not_found(self, mock_exists, mock_input):
+        with patch("builtins.print") as mock_print:
+            delete_note()
+            mock_print.assert_called_with("No note with this name found.")
+    
+    @patch("builtins.input", side_effect=["note2.txt", "Some content."])
+    @patch("os.path.exists", return_value=False)
+    @patch("builtins.open", new_callable=mock_open)
+    def test_create_note_different_filename(self, mock_file, mock_exists, mock_input):
+        create_note()
+        mock_file.assert_called_once_with("note2.txt", "w")
+        mock_file().write.assert_called_once_with("Some content.")
+    
+    @patch("builtins.input", side_effect=["note1.txt"])
+    @patch("builtins.open", new_callable=mock_open, read_data="Another note content.")
+    @patch("os.path.exists", return_value=True)
+    def test_open_note_different_content(self, mock_exists, mock_file, mock_input):
+        with patch("builtins.print") as mock_print:
+            open_note()
+            mock_file.assert_called_once_with("note1.txt", "r")
+            mock_print.assert_any_call("\n--- Content of note1.txt ---")
+            mock_print.assert_any_call("Another note content.")
+    
+    @patch("os.path.exists", side_effect=[False, True, True])
+    @patch("os.remove")
+    @patch("builtins.input", side_effect=["note1.txt", "note1.txt", "note1.txt"])
+    def test_multiple_delete_scenarios(self, mock_input, mock_remove, mock_exists):
+        with patch("builtins.print") as mock_print:
+            delete_note()  # File doesn't exist
+            mock_print.assert_called_with("No note with this name found.")
+            
+            delete_note()  # File exists
+            mock_remove.assert_called_with("note1.txt")
+            mock_print.assert_called_with("Note 'note1.txt' deleted successfully.")
+    
+    @patch("builtins.input", side_effect=["invalid|file<>name.txt", "Some note content."])
+    @patch("builtins.print")
+    def test_invalid_filename(self, mock_print, mock_input):
+        create_note()
+        mock_print.assert_called_with("Invalid filename. Please avoid special characters and try again.")
 
 if __name__ == "__main__":
     unittest.main()
