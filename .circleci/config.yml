@@ -1,38 +1,34 @@
 version: 2.1
 
-executors:
-  python-executor:
-    docker:
-      - image: circleci/python:3.9
-    working_directory: ~/repo
-
 jobs:
   test:
-    executor: python-executor
+    docker:
+      - image: circleci/python:3.11
     steps:
       - checkout
+      
+      # Set up Python environment
       - run:
-          name: Install dependencies for GUI
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y xvfb
-      - run:
-          name: Set up Python environment
+          name: Install dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            pip install pytest
+            pip install -r requirements.txt || echo "No requirements.txt, skipping."
+
+      # Run the tests
       - run:
-          name: Run tests with virtual display
+          name: Run Unit Tests
           command: |
-            Xvfb :99 -ac &
-            export DISPLAY=:99
             . venv/bin/activate
-            pytest
+            python -m unittest discover -s . -p "test_*.py"
+
+      # Save test results
+      - store_test_results:
+          path: test-results
 
 workflows:
   version: 2
-  test:
+  test_workflow:
     jobs:
       - test
