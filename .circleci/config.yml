@@ -3,19 +3,27 @@ version: 2.1
 jobs:
   test:
     docker:
-      # Use an official Python Docker image
       - image: circleci/python:3.9
     steps:
       # Checkout the code
       - checkout
 
-      # Set up Python environment
+      # Install dependencies and virtual display setup
       - run:
-          name: Install Python dependencies
+          name: Install dependencies and Xvfb
           command: |
+            sudo apt-get update
+            sudo apt-get install -y xvfb
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
+
+      # Start virtual display
+      - run:
+          name: Start Xvfb
+          command: |
+            Xvfb :99 -screen 0 1024x768x16 &
+            export DISPLAY=:99
 
       # Run the tests
       - run:
@@ -29,4 +37,3 @@ workflows:
   test-workflow:
     jobs:
       - test
-      
