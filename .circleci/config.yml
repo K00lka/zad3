@@ -12,6 +12,11 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies for GUI
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+      - run:
           name: Set up Python environment
           command: |
             python -m venv venv
@@ -19,12 +24,10 @@ jobs:
             pip install --upgrade pip
             pip install pytest
       - run:
-          name: Install application dependencies
+          name: Run tests with virtual display
           command: |
-            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - run:
-          name: Run tests
-          command: |
+            Xvfb :99 -ac &
+            export DISPLAY=:99
             . venv/bin/activate
             pytest
 

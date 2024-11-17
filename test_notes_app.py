@@ -3,14 +3,9 @@ from unittest.mock import patch, MagicMock
 from tkinter import Tk, Text
 import os
 from unittest.mock import Mock
-
-# Mock Tkinter if running in a headless environment
-if 'DISPLAY' not in os.environ:
-    import tkinter
-    tkinter.Tk = Mock()
-
-import notes_app  # Now safe to import
 import builtins
+import notes_app  
+
 
 
 class TestTextEditorApp(unittest.TestCase):
