@@ -1,39 +1,35 @@
 version: 2.1
 
-jobs:
-  test:
+executors:
+  python-executor:
     docker:
       - image: circleci/python:3.9
-    steps:
-      # Checkout the code
-      - checkout
+    working_directory: ~/repo
 
-      # Install dependencies and virtual display setup
+jobs:
+  test:
+    executor: python-executor
+    steps:
+      - checkout
       - run:
-          name: Install dependencies and Xvfb
+          name: Set up Python environment
           command: |
-            sudo apt-get update
-            sudo apt-get install -y xvfb
             python -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-
-      # Start virtual display
+            pip install pytest
       - run:
-          name: Start Xvfb
+          name: Install application dependencies
           command: |
-            Xvfb :99 -screen 0 1024x768x16 &
-            export DISPLAY=:99
-
-      # Run the tests
+            if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
       - run:
           name: Run tests
           command: |
             . venv/bin/activate
-            python -m unittest test_notes_app.py
+            pytest
 
 workflows:
   version: 2
-  test-workflow:
+  test:
     jobs:
       - test
