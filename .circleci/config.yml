@@ -1,0 +1,36 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: python:3.11
+    steps:
+      - checkout
+      
+      # Set up Python environment
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            pip install -r requirements.txt || echo "No requirements.txt, skipping."
+
+      # Run the tests
+      - run:
+          name: Run Unit Tests
+          command: |
+            . venv/bin/activate
+            python -m unittest discover -s . -p "test_*.py"
+
+      # Save test results
+      - store_test_results:
+          path: test-results
+
+         
+
+workflows:
+  version: 2
+  test_workflow:
+    jobs:
+      - test
